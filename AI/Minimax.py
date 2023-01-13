@@ -5,8 +5,9 @@ from AI.AI import AI
 
 class Minimax(AI):
 
-    def findMove(self, gs, valid_moves):
+    def findMove(self, gs, valid_moves,depth):
         random.shuffle(valid_moves)
+        self.DEPTH = depth
         self.findMoveMinimax(gs, valid_moves, self.DEPTH, gs.red_to_move)
         return self.next_move
 

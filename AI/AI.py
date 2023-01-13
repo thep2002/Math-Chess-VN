@@ -1,8 +1,8 @@
-class AI:
+class AI():
     def __init__(self):
         self.CHECKMATE = 45
         self.STALEMATE = 0
-        self.DEPTH = 3
+        self.DEPTH = 0
         self.next_move = None
 
     def scoreMaterial(self, board):
