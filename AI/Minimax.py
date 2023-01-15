@@ -1,9 +1,12 @@
 from AI.AI import AI
+import random
 
 
 class Minimax(AI):
 
     def findMove(self, gs, valid_moves):
+        random.shuffle(valid_moves)
+        self.DEPTH = depth
         alpha = -self.CHECKMATE
         beta = self.CHECKMATE
         self.findMoveMinimax(gs, valid_moves, self.DEPTH, gs.red_to_move, alpha, beta)
