@@ -47,20 +47,34 @@ def loadImages():
 
 
 def scoreMaterial(gs):
-    score = 0
+    score_1 = 0
+    score_2 = 0
     for row in gs.board:
         for square in row:
             if square[0] == "r":
                 if int(square[1]) == 0:
-                    score += 1000000
+                    score_1 += 1000000
                 else:
-                    score += int(square[1])
+                    score_1 += int(square[1])
             elif square[0] == "b":
                 if int(square[1]) == 0:
-                    score -= 1000000
+                    score_2 += 1000000
                 else:
-                    score -= int(square[1])
-    return score
+                    score_2 += int(square[1])
+    score_3 = 1000045 - score_2
+    score_4 = 1000045 - score_1
+    return score_3, score_4
+def CalTime(gs):
+    time1 = 600
+    time2 = 600
+    if gs.red_to_move:
+        time1 -= 1/MAX_FPS
+    else:
+        time2 -= 1/MAX_FPS
+    if time1 < 0 or time2 < 0:
+        time1 = time2 = 600
+    return time1, time2
+
 
 
 def main():
@@ -80,10 +94,14 @@ def main():
     player_clicks = []  # keep track of the player clicks
     game_over = False
     # AI = Negascout()  # Greedy / Minimax / Negamax / Negascout
+    player_time = 1200
     player1_time = 600
     player2_time = 600
     player1_timeint = 600
     player2_timeint = 600
+    red_score = 0
+    blue_score = 0
+    start_time = pygame.time.get_ticks()
     AI_BLUE = None
     DEPTH_AI_BLUE = None
     DEPTH_AI_RED = None
@@ -166,10 +184,10 @@ def main():
             game_over = gs.check()
             if game_over:
                 if gs.red_to_move:
-                    loser("Red lose", screen)
+                    loser("Blue win", screen)
                     running = False
                 else:
-                    loser("Blue lose", screen)
+                    loser("Red win", screen)
                     running = False
             human_turn = (gs.red_to_move and player_one) or (not gs.red_to_move and player_two)
             for event in pygame.event.get():
@@ -200,12 +218,23 @@ def main():
                         gs.undoMove()
                         gs.undoMove()
                         move_made = True
-            if not game_over and gs.red_to_move:
-                player1_time -= 1 / MAX_FPS
-                player1_timeint = int(player1_time)
-            else:
-                player2_time -= 1 / MAX_FPS
-                player2_timeint = int(player2_time)
+
+            player1_time = CalTime(gs)[0]
+            player1_timeint = int(player1_time)
+            player1_minutes = player1_timeint // 60
+            player1_minutes1 = player1_minutes // 10
+            player1_minutes2 = player1_minutes % 10
+            player1_second = player1_timeint % 60
+            player1_second1 = player1_second // 10
+            player1_second2 = player1_second % 10
+            player2_time = CalTime(gs)[1]
+            player2_timeint = int(player2_time)
+            player2_minutes = player2_timeint // 60
+            player2_minutes1 = player2_minutes // 10
+            player2_minutes2 = player2_minutes % 10
+            player2_second = player2_timeint % 60
+            player2_second1 = player2_second // 10
+            player2_second2 = player2_second % 10
 
                 # Check for time expiration
             if player1_time <= 0:
@@ -219,7 +248,7 @@ def main():
             sub_screen1.fill((255, 0, 0))
             # Write some text on the sub-screen
             font = pygame.font.Font(None, 36)
-            text = font.render("Red time: " + str(player1_timeint), True, (255, 255, 255))
+            text = font.render("Red time: " + str(player1_minutes1) + str(player1_minutes2) + ':' + str(player1_second1) + str(player1_second2), True, (255, 255, 255))
             text_rect = text.get_rect()
             text_rect.centerx = sub_screen1.get_rect().centerx
             text_rect.centery = sub_screen1.get_rect().centery
@@ -231,7 +260,7 @@ def main():
             sub_screen4.fill((0, 0, 255))
             # Write some text on the sub-screen
             font = pygame.font.Font(None, 36)
-            text = font.render("Blue time: " + str(player2_timeint), True, (255, 255, 255))
+            text = font.render("Blue time: " + str(player2_minutes1) + str(player2_minutes2) + ':' + str(player2_second1) + str(player2_second2), True, (255, 255, 255))
             text_rect = text.get_rect()
             text_rect.centerx = sub_screen4.get_rect().centerx
             text_rect.centery = sub_screen4.get_rect().centery
@@ -240,13 +269,13 @@ def main():
             screen.blit(sub_screen4, (576, 176))
 
             # Calculate red score
-            red_score = scoreMaterial(gs)
-            blue_score = -red_score
+            red_score = scoreMaterial(gs)[0]
+            blue_score = scoreMaterial(gs)[1]
             if red_score >= 15:
-                loser("Blue lose", screen)
+                loser("Red win", screen)
                 running = False
             elif blue_score >= 15:
-                loser("Red lose", screen)
+                loser("Blue win", screen)
                 running = False
 
             sub_screen3 = pygame.Surface((256, 176))
