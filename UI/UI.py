@@ -219,13 +219,13 @@ class ChooseDepth:
         self.rectimg_min.center = ((WIDTH - WIDTH_BOX) // 2, HEIGHT // 1.5)
         self.rectimg.center = ((WIDTH - WIDTH_BOX) // 2, HEIGHT // 1.5)
 
-
         pygame.display.flip()
 
     def update(self, events):
         self.offset_x = 0
         self.sau = 0
         run = True
+        self.check = False
         while run:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -237,6 +237,7 @@ class ChooseDepth:
                             mouse_x, mouse_y = event.pos
                             self.offset_x = self.rectimg.x - mouse_x
                     if self.playRect.collidepoint(event.pos):
+                        self.check = True
                         return ('CHOOSE_BOT')
                     if self.playRect_1.collidepoint(event.pos):
                         run = False
@@ -294,4 +295,6 @@ class ChooseDepth:
                         pygame.display.flip()
         return True
     def element(self, events):
+        if self.check:
+            return -1
         return int(self.sau)

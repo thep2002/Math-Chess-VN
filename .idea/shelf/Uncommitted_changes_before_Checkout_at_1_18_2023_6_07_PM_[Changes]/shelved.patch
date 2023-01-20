@@ -1,0 +1,333 @@
+Index: main.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>\"\"\"\r\nMain driver file.\r\nHandling user input.\r\nDisplaying current GameStatus object.\r\n\"\"\"\r\n\r\nimport pygame\r\nimport time\r\nfrom Engine.GameState import GameState\r\nfrom Engine.Move import Move\r\nfrom AI.Negamax import Negamax\r\nfrom AI.Negascout import Negascout\r\nfrom AI.Minimax import Minimax\r\nfrom AI.Greedy import Greedy\r\nfrom UI.UI import *\r\nWIDTH = 832\r\nHEIGHT = 704\r\nC_DIMENSION = 9\r\nR_DIMENSION = 11\r\nSQ_SIZE = HEIGHT // R_DIMENSION\r\nMAX_FPS = 10\r\nIMAGES = {}\r\n\r\nscenes = {\r\n        'TITLE': SimpleScene('Cờ toán Việt Nam'),\r\n        'CHOOSE_MODE': ChooseScene('Chọn chế độ chơi','Người Vs Người','Người Vs Máy','Máy Vs Máy'),\r\n        'CHOOSE_BOT': ChooseBot('Chọn Bot','Negamax','Negascout','Minimax','Greedy'),\r\n        'CHOOSE_DEPTH': ChooseDepth('Chọn độ sâu','Độ sâu: ')\r\n    }\r\nbotai = {\r\n    'Negamax': Negamax(),\r\n    'Negascout': Negascout(),\r\n    'Minimax': Minimax(),\r\n    'Greedy': Greedy()\r\n}\r\n\r\ndef loadImages():\r\n    \"\"\"\r\n    Initialize a global directory of images.\r\n    This will be called exactly once in the main.\r\n    \"\"\"\r\n    pieces = [\"b0\", \"b1\", \"b2\", \"b3\", \"b4\", \"b5\", \"b6\", \"b7\", \"b8\", \"b9\",\r\n              \"r0\", \"r1\", \"r2\", \"r3\", \"r4\", \"r5\", \"r6\", \"r7\", \"r8\", \"r9\"]\r\n    for piece in pieces:\r\n        IMAGES[piece] = pygame.transform.scale(pygame.image.load(\"image/\" + piece + \".png\"),\r\n                                               (SQ_SIZE - 10, SQ_SIZE - 10))\r\n\r\n\r\ndef scoreMaterial(gs):\r\n    score = 0\r\n    for row in gs.board:\r\n        for square in row:\r\n            if square[0] == \"r\":\r\n                if int(square[1]) == 0:\r\n                    score += 1000000\r\n                else:\r\n                    score += int(square[1])\r\n            elif square[0] == \"b\":\r\n                if int(square[1]) == 0:\r\n                    score -= 1000000\r\n                else:\r\n                    score -= int(square[1])\r\n    return score\r\n\r\n\r\ndef main():\r\n    \"\"\"\r\n    The main driver for our code.\r\n    This will handle user input and updating the graphics.\r\n    \"\"\"\r\n    pygame.init()\r\n    screen = pygame.display.set_mode((640, 480))\r\n    clock = pygame.time.Clock()\r\n    gs = GameState()\r\n    valid_moves = gs.getAllPossibleMoves()\r\n    move_made = False  # flag variable for when a move is made\r\n    loadImages()\r\n    running = True\r\n    sq_selected = ()  # no square is selected, keep track of the last click of the user (tuple: (row, col))\r\n    player_clicks = []  # keep track of the player clicks\r\n    game_over = False\r\n    # AI = Negascout()  # Greedy / Minimax / Negamax / Negascout\r\n    player1_time = 600\r\n    player2_time = 600\r\n    player1_timeint = 600\r\n    player2_timeint = 600\r\n    AI_BLUE = None\r\n    DEPTH_AI_BLUE = None\r\n    DEPTH_AI_RED = None\r\n    AI_RED = None\r\n    red_score = 0\r\n    blue_score = 0\r\n    end_UI = True\r\n    scene = scenes['TITLE']\r\n    while running:\r\n        if end_UI == True:\r\n            screen = pygame.display.set_mode((640, 480))\r\n            events = pygame.event.get()\r\n            for e in events:\r\n                if e.type == pygame.QUIT:\r\n                    return\r\n            result = scene.update(events)\r\n            ele = scene.element(events)\r\n            if result or ele:\r\n                if ele or ele == 0 :\r\n                    if ele == (True, True):\r\n                        player_one = True  # if a human playing red, then this will be True. If an AI is playing, then false\r\n                        player_two = True  # same as above but for blue\r\n                        end_UI = False\r\n                        result = 'CHOOSE_MODE'\r\n                        screen = pygame.display.set_mode((WIDTH, HEIGHT))\r\n                    if ele == (True, False):\r\n                        player_one = True\r\n                        player_two = False\r\n                        result = 'CHOOSE_BOT'\r\n                    if ele == (False, False):\r\n                        player_one = False\r\n                        player_two = False\r\n                        result = 'CHOOSE_BOT'\r\n                    if ele == 'Negamax' and  AI_BLUE:\r\n                        AI_RED = botai['Negamax']\r\n                        result = 'CHOOSE_DEPTH'\r\n                    if ele == 'Negamax' and not AI_BLUE:\r\n                        AI_BLUE = botai['Negamax']\r\n                        result = 'CHOOSE_DEPTH'\r\n                    if ele == 'Negascout' and  AI_BLUE:\r\n                        AI_RED = botai['Negamax']\r\n                        result = 'CHOOSE_DEPTH'\r\n                    if ele == 'Negascout' and not AI_BLUE:\r\n                        AI_BLUE = botai['Negascout']\r\n                        result = 'CHOOSE_DEPTH'\r\n                    if ele == 'Minimax' and AI_BLUE:\r\n                        AI_RED = botai['Negamax']\r\n                        result = 'CHOOSE_DEPTH'\r\n                    if ele == 'Minimax' and not AI_BLUE:\r\n                        AI_BLUE = botai['Minimax']\r\n                        result = 'CHOOSE_DEPTH'\r\n                    if ele == 'Greedy' and  AI_BLUE:\r\n                        AI_RED = botai['Greedy']\r\n                        DEPTH_AI_RED = True\r\n                    if ele == 'Greedy' and not AI_BLUE:\r\n                        AI_BLUE = botai['Greedy']\r\n                        DEPTH_AI_BLUE = True\r\n\r\n                    if isinstance(ele, int) and  DEPTH_AI_BLUE:\r\n\r\n                        DEPTH_AI_RED = ele\r\n                    if isinstance(ele, int) and not DEPTH_AI_BLUE:\r\n                        DEPTH_AI_BLUE = ele\r\n\r\n                    if not player_one and not AI_RED and (DEPTH_AI_BLUE or DEPTH_AI_BLUE==0):\r\n                        result = 'CHOOSE_BOT'\r\n\r\n                    if (player_one and not player_two and AI_BLUE and (DEPTH_AI_BLUE or DEPTH_AI_BLUE == 0)) or (not player_one and not player_two and AI_BLUE and AI_RED and (DEPTH_AI_BLUE or DEPTH_AI_BLUE == 0) and (DEPTH_AI_RED or DEPTH_AI_RED == 0)):\r\n\r\n                        print(DEPTH_AI_RED)\r\n                        result = 'CHOOSE_MODE'\r\n                        end_UI = False\r\n                        screen = pygame.display.set_mode((WIDTH, HEIGHT))\r\n\r\n                scene = scenes[result]\r\n            scene.draw(screen)\r\n            pygame.display.flip()\r\n        else:\r\n            drawGameState(screen, gs, valid_moves, sq_selected)\r\n            game_over = gs.check()\r\n            if game_over:\r\n                if gs.red_to_move:\r\n                    loser(\"Red lose\", screen)\r\n                    running = False\r\n                else:\r\n                    loser(\"Blue lose\", screen)\r\n                    running = False\r\n            human_turn = (gs.red_to_move and player_one) or (not gs.red_to_move and player_two)\r\n            for event in pygame.event.get():\r\n                if event.type == pygame.QUIT:\r\n                    running = False\r\n                elif event.type == pygame.MOUSEBUTTONDOWN:\r\n                    if not game_over and human_turn:\r\n                        location = pygame.mouse.get_pos()  # (x,y) location of mouse\r\n                        col = location[0] // SQ_SIZE\r\n                        row = location[1] // SQ_SIZE\r\n                        if sq_selected == (row, col):  # the user clicked the same square twice\r\n                            sq_selected = ()  # deselect\r\n                            player_clicks = []  # clear player clicks\r\n                        else:\r\n                            sq_selected = (row, col)\r\n                            player_clicks.append(sq_selected)  # append for both 1st and 2nd clicks\r\n                        if len(player_clicks) == 2:  # after 2 click\r\n                            move = Move(player_clicks[0], player_clicks[1], gs.board)\r\n                            if move in valid_moves:\r\n                                gs.makeMove(move)\r\n                                move_made = True\r\n                                sq_selected = ()  # reset user clicks\r\n                                player_clicks = []\r\n                            else:\r\n                                player_clicks = [sq_selected]\r\n                elif event.type == pygame.KEYDOWN:\r\n                    if event.key == pygame.K_z:  # undo when 'z' is pressed\r\n                        gs.undoMove()\r\n                        gs.undoMove()\r\n                        move_made = True\r\n            if not game_over and gs.red_to_move:\r\n                player1_time -= 1 / MAX_FPS\r\n                player1_timeint = int(player1_time)\r\n            else:\r\n                player2_time -= 1 / MAX_FPS\r\n                player2_timeint = int(player2_time)\r\n\r\n                # Check for time expiration\r\n            if player1_time <= 0:\r\n                print(\"Player 1 has run out of time!\")\r\n                break\r\n            if player2_time <= 0:\r\n                print(\"Player 2 has run out of time!\")\r\n                break\r\n            font = pygame.font.Font(None, 36)\r\n            sub_screen1 = pygame.Surface((256, 176))\r\n            sub_screen1.fill((255, 0, 0))\r\n            # Write some text on the sub-screen\r\n            font = pygame.font.Font(None, 36)\r\n            text = font.render(\"Red time: \" + str(player1_timeint), True, (255, 255, 255))\r\n            text_rect = text.get_rect()\r\n            text_rect.centerx = sub_screen1.get_rect().centerx\r\n            text_rect.centery = sub_screen1.get_rect().centery\r\n            sub_screen1.blit(text, text_rect)\r\n            # Blit the sub-screen onto the main screen\r\n            screen.blit(sub_screen1, (576, 352))\r\n\r\n            sub_screen4 = pygame.Surface((256, 176))\r\n            sub_screen4.fill((0, 0, 255))\r\n            # Write some text on the sub-screen\r\n            font = pygame.font.Font(None, 36)\r\n            text = font.render(\"Blue time: \" + str(player2_timeint), True, (255, 255, 255))\r\n            text_rect = text.get_rect()\r\n            text_rect.centerx = sub_screen4.get_rect().centerx\r\n            text_rect.centery = sub_screen4.get_rect().centery\r\n            sub_screen4.blit(text, text_rect)\r\n            # Blit the sub-screen onto the main screen\r\n            screen.blit(sub_screen4, (576, 176))\r\n\r\n            # Calculate red score\r\n            red_score = scoreMaterial(gs)\r\n            blue_score = -red_score\r\n            if red_score >= 15:\r\n                loser(\"Blue lose\", screen)\r\n                running = False\r\n            elif blue_score >= 15:\r\n                loser(\"Red lose\", screen)\r\n                running = False\r\n\r\n            sub_screen3 = pygame.Surface((256, 176))\r\n            sub_screen3.fill((255, 0, 0))\r\n            # Write some text on the sub-screen\r\n            font = pygame.font.Font(None, 36)\r\n            text = font.render(\"Red score: \" + str(red_score), True, (255, 255, 255))\r\n            text_rect = text.get_rect()\r\n            text_rect.centerx = sub_screen3.get_rect().centerx\r\n            text_rect.centery = sub_screen3.get_rect().centery\r\n            sub_screen3.blit(text, text_rect)\r\n            # Blit the sub-screen onto the main screen\r\n            screen.blit(sub_screen3, (576, 528))\r\n\r\n            sub_screen2 = pygame.Surface((256, 176))\r\n            sub_screen2.fill((0, 0, 255))\r\n            # Write some text on the sub-screen\r\n            font = pygame.font.Font(None, 36)\r\n            text = font.render(\"Blue score: \" + str(blue_score), True, (255, 255, 255))\r\n            text_rect = text.get_rect()\r\n            text_rect.centerx = sub_screen2.get_rect().centerx\r\n            text_rect.centery = sub_screen2.get_rect().centery\r\n            sub_screen2.blit(text, text_rect)\r\n            # Blit the sub-screen onto the main screen\r\n            screen.blit(sub_screen2, (576, 0))\r\n            # Update the display\r\n            pygame.display.flip()\r\n\r\n            # AI move finder\r\n            if not game_over and not human_turn  and not gs.red_to_move:\r\n                print('hh')\r\n                ################################\r\n                AIMove = AI_BLUE.findMove(gs, valid_moves,DEPTH_AI_BLUE)\r\n                gs.makeMove(AIMove)\r\n                move_made = True\r\n                ################################\r\n\r\n            elif not game_over and not human_turn and AI_RED and gs.red_to_move:\r\n                ################################\r\n                AIMove = AI_BLUE.findMove(gs, valid_moves,DEPTH_AI_RED)\r\n                gs.makeMove(AIMove)\r\n                move_made = True\r\n                ################################\r\n            if move_made:\r\n                valid_moves = gs.getAllPossibleMoves()\r\n                move_made = False\r\n            drawGameState(screen, gs, valid_moves, sq_selected)\r\n            clock.tick(MAX_FPS)\r\n            print(gs.red_to_move)\r\n            pygame.display.flip()\r\n\r\n\r\n'''\r\nHighlight square selected and moves for piece selected\r\n'''\r\n\r\n\r\ndef highlightSquares(screen, gs, valid_moves, sq_selected):\r\n    if sq_selected != ():\r\n        r, c = sq_selected\r\n        if gs.board[r][c][0] == ('r' if gs.red_to_move else 'b'):  # sq_selected is a piece that can be moved\r\n            # highlight selected square\r\n            s = pygame.Surface((SQ_SIZE, SQ_SIZE))\r\n            s.set_alpha(100)  # transparency value -> 0 transparent; 255 opaque\r\n            s.fill(pygame.Color('blue'))\r\n            screen.blit(s, (c * SQ_SIZE, r * SQ_SIZE))\r\n            s.fill(pygame.Color('yellow'))\r\n            for move in valid_moves:\r\n                if move.start_row == r and move.start_col == c:\r\n                    screen.blit(s, (move.end_col * SQ_SIZE, move.end_row * SQ_SIZE))\r\n\r\n\r\ndef drawGameState(screen, gs, valid_moves, sq_selected):\r\n    \"\"\"\r\n    Responsible for all the graphics within current game state.\r\n    \"\"\"\r\n    drawBoard(screen)\r\n    highlightSquares(screen, gs, valid_moves, sq_selected)\r\n    drawPieces(screen, gs.board)\r\n\r\n\r\ndef drawBoard(screen):\r\n    \"\"\"\r\n    Draw the squares on the board.\r\n    The top left square is always light.\r\n    \"\"\"\r\n    colors = [pygame.Color(\"white\"), pygame.Color(\"bisque3\")]\r\n    for r in range(R_DIMENSION):\r\n        for c in range(C_DIMENSION):\r\n            color = colors[((r + c) % 2)]\r\n            pygame.draw.rect(screen, color, pygame.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))\r\n\r\n\r\ndef drawPieces(screen, board):\r\n    \"\"\"\r\n    Draw the pieces on the board using the current game_state.board\r\n    \"\"\"\r\n    for r in range(R_DIMENSION):\r\n        for c in range(C_DIMENSION):\r\n            piece = board[r][c]\r\n            if piece != \"--\":\r\n                screen.blit(IMAGES[piece], pygame.Rect(c * SQ_SIZE + 5, r * SQ_SIZE + 5, SQ_SIZE, SQ_SIZE))\r\n\r\n\r\ndef loser(message, screen):\r\n    time.sleep(0.5)\r\n    font = pygame.font.Font('freesansbold.ttf', 32)\r\n    text = font.render(message, True, pygame.Color('green'))\r\n    textRect = text.get_rect()\r\n    textRect.center = (WIDTH // 2, HEIGHT // 2)\r\n    screen.fill(pygame.Color('white'))\r\n    screen.blit(text, textRect)\r\n    pygame.display.update()\r\n    time.sleep(5)\r\n\r\n\r\nif __name__ == '__main__':\r\n    main()
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/main.py b/main.py
+--- a/main.py	(revision f0a6b34b37f43731d28fba2c1b326e02046eee41)
++++ b/main.py	(date 1674039916981)
+@@ -143,12 +143,11 @@
+                         DEPTH_AI_BLUE = True
+ 
+                     if isinstance(ele, int) and  DEPTH_AI_BLUE:
+-
+                         DEPTH_AI_RED = ele
+                     if isinstance(ele, int) and not DEPTH_AI_BLUE:
+                         DEPTH_AI_BLUE = ele
+ 
+-                    if not player_one and not AI_RED and (DEPTH_AI_BLUE or DEPTH_AI_BLUE==0):
++                    if not player_one and not AI_RED and (DEPTH_AI_BLUE or DEPTH_AI_BLUE == 0):
+                         result = 'CHOOSE_BOT'
+ 
+                     if (player_one and not player_two and AI_BLUE and (DEPTH_AI_BLUE or DEPTH_AI_BLUE == 0)) or (not player_one and not player_two and AI_BLUE and AI_RED and (DEPTH_AI_BLUE or DEPTH_AI_BLUE == 0) and (DEPTH_AI_RED or DEPTH_AI_RED == 0)):
+@@ -349,6 +348,7 @@
+             piece = board[r][c]
+             if piece != "--":
+                 screen.blit(IMAGES[piece], pygame.Rect(c * SQ_SIZE + 5, r * SQ_SIZE + 5, SQ_SIZE, SQ_SIZE))
++def draw_caltable():
+ 
+ 
+ def loser(message, screen):
+Index: sdsd.py
+===================================================================
+diff --git a/sdsd.py b/sdsd.py
+deleted file mode 100644
+--- a/sdsd.py	(revision f0a6b34b37f43731d28fba2c1b326e02046eee41)
++++ /dev/null	(revision f0a6b34b37f43731d28fba2c1b326e02046eee41)
+@@ -1,88 +0,0 @@
+-import pygame
+-
+-# --- constants --- (UPPER_CASE names)
+-
+-SCREEN_WIDTH = 430
+-SCREEN_HEIGHT = 410
+-
+-#BLACK = (  0,   0,   0)
+-WHITE = (255, 255, 255)
+-RED   = (255,   0,   0)
+-
+-FPS = 30
+-
+-# --- classses --- (CamelCase names)
+-
+-# empty
+-
+-# --- functions --- (lower_case names)
+-
+-# empty
+-
+-# --- main ---
+-
+-# - init -
+-
+-pygame.init()
+-
+-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+-#screen_rect = screen.get_rect()
+-
+-pygame.display.set_caption("Tracking System")
+-
+-# - objects -
+-
+-rectangle = pygame.rect.Rect(176, 134, 17, 17)
+-rectangle_draging = False
+-
+-# - mainloop -
+-
+-clock = pygame.time.Clock()
+-
+-running = True
+-
+-while running:
+-
+-    # - events -
+-
+-    for event in pygame.event.get():
+-        if event.type == pygame.QUIT:
+-            running = False
+-
+-        elif event.type == pygame.MOUSEBUTTONDOWN:
+-            if event.button == 1:
+-                if rectangle.collidepoint(event.pos):
+-                    rectangle_draging = True
+-                    mouse_x, mouse_y = event.pos
+-                    offset_x = rectangle.x - mouse_x
+-                    offset_y = rectangle.y - mouse_y
+-
+-        elif event.type == pygame.MOUSEBUTTONUP:
+-            if event.button == 1:
+-                rectangle_draging = False
+-
+-        elif event.type == pygame.MOUSEMOTION:
+-            if rectangle_draging:
+-                mouse_x, mouse_y = event.pos
+-                rectangle.x = mouse_x + offset_x
+-                rectangle.y = mouse_y + offset_y
+-
+-    # - updates (without draws) -
+-
+-    # empty
+-
+-    # - draws (without updates) -
+-
+-    screen.fill(WHITE)
+-
+-    pygame.draw.rect(screen, RED, rectangle)
+-
+-    pygame.display.flip()
+-
+-    # - constant game speed / FPS -
+-
+-    clock.tick(FPS)
+-
+-# - end -
+-
+-pygame.quit()
+\ No newline at end of file
+Index: .idea/misc.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"ProjectRootManager\" version=\"2\" project-jdk-name=\"Python 3.10 (Vietnamese-Math-Chess)\" project-jdk-type=\"Python SDK\" />\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/misc.xml b/.idea/misc.xml
+--- a/.idea/misc.xml	(revision f0a6b34b37f43731d28fba2c1b326e02046eee41)
++++ b/.idea/misc.xml	(date 1673675914804)
+@@ -1,4 +1,4 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project version="4">
+-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.10 (Vietnamese-Math-Chess)" project-jdk-type="Python SDK" />
++  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.10" project-jdk-type="Python SDK" />
+ </project>
+\ No newline at end of file
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"AutoImportSettings\">\r\n    <option name=\"autoReloadType\" value=\"SELECTIVE\" />\r\n  </component>\r\n  <component name=\"ChangeListManager\">\r\n    <list default=\"true\" id=\"5e39496f-9e91-4f46-9947-d6129a8577c9\" name=\"Changes\" comment=\"\">\r\n      <change beforePath=\"$PROJECT_DIR$/AI/Negascout.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/AI/Negascout.py\" afterDir=\"false\" />\r\n    </list>\r\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\r\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\r\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\r\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\r\n  </component>\r\n  <component name=\"FileTemplateManagerImpl\">\r\n    <option name=\"RECENT_TEMPLATES\">\r\n      <list>\r\n        <option value=\"Python Script\" />\r\n      </list>\r\n    </option>\r\n  </component>\r\n  <component name=\"Git.Settings\">\r\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\r\n  </component>\r\n  <component name=\"MarkdownSettingsMigration\">\r\n    <option name=\"stateVersion\" value=\"1\" />\r\n  </component>\r\n  <component name=\"ProjectId\" id=\"2IGccGGkVO7gVz0lim8Dh9KsZup\" />\r\n  <component name=\"ProjectLevelVcsManager\">\r\n    <ConfirmationsSetting value=\"2\" id=\"Add\" />\r\n  </component>\r\n  <component name=\"ProjectViewState\">\r\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\r\n    <option name=\"showLibraryContents\" value=\"true\" />\r\n  </component>\r\n  <component name=\"PropertiesComponent\">{\r\n  &quot;keyToString&quot;: {\r\n    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,\r\n    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,\r\n    &quot;last_opened_file_path&quot;: &quot;/home/pmat/Desktop/Vietnamese-Math-Chess&quot;,\r\n    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.general&quot;\r\n  }\r\n}</component>\r\n  <component name=\"RecentsManager\">\r\n    <key name=\"MoveFile.RECENT_KEYS\">\r\n      <recent name=\"$PROJECT_DIR$/Engine\" />\r\n    </key>\r\n  </component>\r\n  <component name=\"RunManager\">\r\n    <configuration name=\"main\" type=\"PythonConfigurationType\" factoryName=\"Python\" temporary=\"true\" nameIsGenerated=\"true\">\r\n      <module name=\"Vietnamese-Math-Chess\" />\r\n      <option name=\"INTERPRETER_OPTIONS\" value=\"\" />\r\n      <option name=\"PARENT_ENVS\" value=\"true\" />\r\n      <envs>\r\n        <env name=\"PYTHONUNBUFFERED\" value=\"1\" />\r\n      </envs>\r\n      <option name=\"SDK_HOME\" value=\"\" />\r\n      <option name=\"WORKING_DIRECTORY\" value=\"$PROJECT_DIR$\" />\r\n      <option name=\"IS_MODULE_SDK\" value=\"true\" />\r\n      <option name=\"ADD_CONTENT_ROOTS\" value=\"true\" />\r\n      <option name=\"ADD_SOURCE_ROOTS\" value=\"true\" />\r\n      <option name=\"SCRIPT_NAME\" value=\"$PROJECT_DIR$/main.py\" />\r\n      <option name=\"PARAMETERS\" value=\"\" />\r\n      <option name=\"SHOW_COMMAND_LINE\" value=\"false\" />\r\n      <option name=\"EMULATE_TERMINAL\" value=\"false\" />\r\n      <option name=\"MODULE_MODE\" value=\"false\" />\r\n      <option name=\"REDIRECT_INPUT\" value=\"false\" />\r\n      <option name=\"INPUT_FILE\" value=\"\" />\r\n      <method v=\"2\" />\r\n    </configuration>\r\n    <recent_temporary>\r\n      <list>\r\n        <item itemvalue=\"Python.main\" />\r\n      </list>\r\n    </recent_temporary>\r\n  </component>\r\n  <component name=\"SpellCheckerSettings\" RuntimeDictionaries=\"0\" Folders=\"0\" CustomDictionaries=\"0\" DefaultDictionary=\"application-level\" UseSingleDictionary=\"true\" transferred=\"true\" />\r\n  <component name=\"TaskManager\">\r\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\r\n      <changelist id=\"5e39496f-9e91-4f46-9947-d6129a8577c9\" name=\"Changes\" comment=\"\" />\r\n      <created>1669811438760</created>\r\n      <option name=\"number\" value=\"Default\" />\r\n      <option name=\"presentableId\" value=\"Default\" />\r\n      <updated>1669811438760</updated>\r\n    </task>\r\n    <servers />\r\n  </component>\r\n  <component name=\"Vcs.Log.Tabs.Properties\">\r\n    <option name=\"TAB_STATES\">\r\n      <map>\r\n        <entry key=\"MAIN\">\r\n          <value>\r\n            <State />\r\n          </value>\r\n        </entry>\r\n      </map>\r\n    </option>\r\n  </component>\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision f0a6b34b37f43731d28fba2c1b326e02046eee41)
++++ b/.idea/workspace.xml	(date 1674039917388)
+@@ -5,7 +5,11 @@
+   </component>
+   <component name="ChangeListManager">
+     <list default="true" id="5e39496f-9e91-4f46-9947-d6129a8577c9" name="Changes" comment="">
+-      <change beforePath="$PROJECT_DIR$/AI/Negascout.py" beforeDir="false" afterPath="$PROJECT_DIR$/AI/Negascout.py" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/.idea/Vietnamese-Math-Chess.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Vietnamese-Math-Chess.iml" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/sdsd.py" beforeDir="false" />
+     </list>
+     <option name="SHOW_DIALOG" value="false" />
+     <option name="HIGHLIGHT_CONFLICTS" value="true" />
+@@ -21,12 +25,13 @@
+   </component>
+   <component name="Git.Settings">
+     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
++    <option name="RESET_MODE" value="HARD" />
+   </component>
+   <component name="MarkdownSettingsMigration">
+     <option name="stateVersion" value="1" />
+   </component>
+   <component name="ProjectId" id="2IGccGGkVO7gVz0lim8Dh9KsZup" />
+-  <component name="ProjectLevelVcsManager">
++  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+     <ConfirmationsSetting value="2" id="Add" />
+   </component>
+   <component name="ProjectViewState">
+@@ -47,6 +52,27 @@
+     </key>
+   </component>
+   <component name="RunManager">
++    <configuration default="true" type="PythonConfigurationType" factoryName="Python">
++      <module name="Vietnamese-Math-Chess" />
++      <option name="INTERPRETER_OPTIONS" value="" />
++      <option name="PARENT_ENVS" value="true" />
++      <envs>
++        <env name="PYTHONUNBUFFERED" value="1" />
++      </envs>
++      <option name="SDK_HOME" value="" />
++      <option name="WORKING_DIRECTORY" value="" />
++      <option name="IS_MODULE_SDK" value="false" />
++      <option name="ADD_CONTENT_ROOTS" value="true" />
++      <option name="ADD_SOURCE_ROOTS" value="true" />
++      <option name="SCRIPT_NAME" value="" />
++      <option name="PARAMETERS" value="" />
++      <option name="SHOW_COMMAND_LINE" value="false" />
++      <option name="EMULATE_TERMINAL" value="false" />
++      <option name="MODULE_MODE" value="false" />
++      <option name="REDIRECT_INPUT" value="false" />
++      <option name="INPUT_FILE" value="" />
++      <method v="2" />
++    </configuration>
+     <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+       <module name="Vietnamese-Math-Chess" />
+       <option name="INTERPRETER_OPTIONS" value="" />
+@@ -68,6 +94,81 @@
+       <option name="INPUT_FILE" value="" />
+       <method v="2" />
+     </configuration>
++    <configuration default="true" type="Tox" factoryName="Tox">
++      <module name="Vietnamese-Math-Chess" />
++      <option name="INTERPRETER_OPTIONS" value="" />
++      <option name="PARENT_ENVS" value="true" />
++      <option name="SDK_HOME" value="" />
++      <option name="WORKING_DIRECTORY" value="" />
++      <option name="IS_MODULE_SDK" value="false" />
++      <option name="ADD_CONTENT_ROOTS" value="true" />
++      <option name="ADD_SOURCE_ROOTS" value="true" />
++      <method v="2" />
++    </configuration>
++    <configuration default="true" type="docs" factoryName="Docutils task">
++      <module name="Vietnamese-Math-Chess" />
++      <option name="INTERPRETER_OPTIONS" value="" />
++      <option name="PARENT_ENVS" value="true" />
++      <option name="SDK_HOME" value="" />
++      <option name="WORKING_DIRECTORY" value="" />
++      <option name="IS_MODULE_SDK" value="false" />
++      <option name="ADD_CONTENT_ROOTS" value="true" />
++      <option name="ADD_SOURCE_ROOTS" value="true" />
++      <option name="docutils_input_file" value="" />
++      <option name="docutils_output_file" value="" />
++      <option name="docutils_params" value="" />
++      <option name="docutils_task" value="" />
++      <option name="docutils_open_in_browser" value="false" />
++      <method v="2" />
++    </configuration>
++    <configuration default="true" type="docs" factoryName="Sphinx task">
++      <module name="Vietnamese-Math-Chess" />
++      <option name="INTERPRETER_OPTIONS" value="" />
++      <option name="PARENT_ENVS" value="true" />
++      <option name="SDK_HOME" value="" />
++      <option name="WORKING_DIRECTORY" value="" />
++      <option name="IS_MODULE_SDK" value="false" />
++      <option name="ADD_CONTENT_ROOTS" value="true" />
++      <option name="ADD_SOURCE_ROOTS" value="true" />
++      <option name="docutils_input_file" value="" />
++      <option name="docutils_output_file" value="" />
++      <option name="docutils_params" value="" />
++      <option name="docutils_task" value="" />
++      <option name="docutils_open_in_browser" value="false" />
++      <method v="2" />
++    </configuration>
++    <configuration default="true" type="tests" factoryName="Autodetect">
++      <module name="Vietnamese-Math-Chess" />
++      <option name="INTERPRETER_OPTIONS" value="" />
++      <option name="PARENT_ENVS" value="true" />
++      <option name="SDK_HOME" value="" />
++      <option name="WORKING_DIRECTORY" value="" />
++      <option name="IS_MODULE_SDK" value="false" />
++      <option name="ADD_CONTENT_ROOTS" value="true" />
++      <option name="ADD_SOURCE_ROOTS" value="true" />
++      <option name="_new_additionalArguments" value="&quot;&quot;" />
++      <option name="_new_target" value="&quot;&quot;" />
++      <option name="_new_targetType" value="&quot;PATH&quot;" />
++      <method v="2" />
++    </configuration>
++    <configuration default="true" type="tests" factoryName="Doctests">
++      <module name="Vietnamese-Math-Chess" />
++      <option name="INTERPRETER_OPTIONS" value="" />
++      <option name="PARENT_ENVS" value="true" />
++      <option name="SDK_HOME" value="" />
++      <option name="WORKING_DIRECTORY" value="" />
++      <option name="IS_MODULE_SDK" value="false" />
++      <option name="ADD_CONTENT_ROOTS" value="true" />
++      <option name="ADD_SOURCE_ROOTS" value="true" />
++      <option name="SCRIPT_NAME" value="" />
++      <option name="CLASS_NAME" value="" />
++      <option name="METHOD_NAME" value="" />
++      <option name="FOLDER_NAME" value="" />
++      <option name="TEST_TYPE" value="TEST_SCRIPT" />
++      <option name="PATTERN" value="" />
++      <option name="USE_PATTERN" value="false" />
++      <method v="2" />
++    </configuration>
+     <recent_temporary>
+       <list>
+         <item itemvalue="Python.main" />
+@@ -90,7 +191,19 @@
+       <map>
+         <entry key="MAIN">
+           <value>
+-            <State />
++            <State>
++              <option name="FILTERS">
++                <map>
++                  <entry key="branch">
++                    <value>
++                      <list>
++                        <option value="upstream/UI" />
++                      </list>
++                    </value>
++                  </entry>
++                </map>
++              </option>
++            </State>
+           </value>
+         </entry>
+       </map>
+Index: .idea/Vietnamese-Math-Chess.iml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<module type=\"PYTHON_MODULE\" version=\"4\">\r\n  <component name=\"NewModuleRootManager\">\r\n    <content url=\"file://$MODULE_DIR$\">\r\n      <excludeFolder url=\"file://$MODULE_DIR$/venv\" />\r\n    </content>\r\n    <orderEntry type=\"inheritedJdk\" />\r\n    <orderEntry type=\"sourceFolder\" forTests=\"false\" />\r\n  </component>\r\n  <component name=\"PyDocumentationSettings\">\r\n    <option name=\"format\" value=\"PLAIN\" />\r\n    <option name=\"myDocStringFormat\" value=\"Plain\" />\r\n  </component>\r\n</module>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/Vietnamese-Math-Chess.iml b/.idea/Vietnamese-Math-Chess.iml
+--- a/.idea/Vietnamese-Math-Chess.iml	(revision f0a6b34b37f43731d28fba2c1b326e02046eee41)
++++ b/.idea/Vietnamese-Math-Chess.iml	(date 1673675914785)
+@@ -4,7 +4,7 @@
+     <content url="file://$MODULE_DIR$">
+       <excludeFolder url="file://$MODULE_DIR$/venv" />
+     </content>
+-    <orderEntry type="inheritedJdk" />
++    <orderEntry type="jdk" jdkName="Python 3.10" jdkType="Python SDK" />
+     <orderEntry type="sourceFolder" forTests="false" />
+   </component>
+   <component name="PyDocumentationSettings">

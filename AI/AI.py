@@ -1,10 +1,11 @@
+import concurrent.futures
 class AI():
     def __init__(self):
         self.CHECKMATE = 45
         self.STALEMATE = 0
         self.DEPTH = 0
         self.next_move = None
-
+        self.executor = concurrent.futures.ThreadPoolExecutor()
     def scoreMaterial(self, board):
         score = 0
         for row in board:

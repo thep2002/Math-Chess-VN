@@ -1,17 +1,16 @@
-
+from AI.AI import AI
 
 import random
 
 
-import concurrent.futures
+
 
 class Negamax(AI):
-    def __init__(self):
-        self.executor = concurrent.futures.ThreadPoolExecutor()
-        # ...
 
-    def findMove(self, gs, valid_moves):
+
+    def findMove(self, gs, valid_moves,depth):
         random.shuffle(valid_moves)
+        self.DEPTH = depth
         self.findMoveNegaMaxAlphaBeta(gs, valid_moves, self.DEPTH, -self.CHECKMATE, self.CHECKMATE, 1 if gs.red_to_move else -1)
         return self.next_move
 

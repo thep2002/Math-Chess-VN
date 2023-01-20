@@ -13,6 +13,7 @@ from AI.Negascout import Negascout
 from AI.Minimax import Minimax
 from AI.Greedy import Greedy
 from UI.UI import *
+from UI.CAL import *
 WIDTH = 832
 HEIGHT = 704
 C_DIMENSION = 9
@@ -20,7 +21,8 @@ R_DIMENSION = 11
 SQ_SIZE = HEIGHT // R_DIMENSION
 MAX_FPS = 10
 IMAGES = {}
-
+WIDTH_CAL = 256
+HEIGHT_CAL = 256
 scenes = {
         'TITLE': SimpleScene('Cờ toán Việt Nam'),
         'CHOOSE_MODE': ChooseScene('Chọn chế độ chơi','Người Vs Người','Người Vs Máy','Máy Vs Máy'),
@@ -110,6 +112,7 @@ def main():
     blue_score = 0
     end_UI = True
     scene = scenes['TITLE']
+    CAL = CACULATION()
     while running:
         if end_UI == True:
             screen = pygame.display.set_mode((640, 480))
@@ -159,19 +162,21 @@ def main():
                     if ele == 'Greedy' and not AI_BLUE:
                         AI_BLUE = botai['Greedy']
                         DEPTH_AI_BLUE = True
-
-                    if isinstance(ele, int) and  DEPTH_AI_BLUE:
-
-                        DEPTH_AI_RED = ele
+                    if isinstance(ele, int) and  DEPTH_AI_BLUE :
+                        if ele >= 0:
+                            DEPTH_AI_RED = ele
+                        else:
+                            AI_RED = None
                     if isinstance(ele, int) and not DEPTH_AI_BLUE:
-                        DEPTH_AI_BLUE = ele
-
-                    if not player_one and not AI_RED and (DEPTH_AI_BLUE or DEPTH_AI_BLUE==0):
+                        if ele >= 0:
+                            DEPTH_AI_BLUE = ele
+                        else:
+                            AI_BLUE = None
+                    if not player_one and not AI_RED and (DEPTH_AI_BLUE or DEPTH_AI_BLUE == 0):
                         result = 'CHOOSE_BOT'
 
                     if (player_one and not player_two and AI_BLUE and (DEPTH_AI_BLUE or DEPTH_AI_BLUE == 0)) or (not player_one and not player_two and AI_BLUE and AI_RED and (DEPTH_AI_BLUE or DEPTH_AI_BLUE == 0) and (DEPTH_AI_RED or DEPTH_AI_RED == 0)):
 
-                        print(DEPTH_AI_RED)
                         result = 'CHOOSE_MODE'
                         end_UI = False
                         screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -180,7 +185,7 @@ def main():
             scene.draw(screen)
             pygame.display.flip()
         else:
-            drawGameState(screen, gs, valid_moves, sq_selected)
+            drawGameState(screen, gs, valid_moves, sq_selected,events)
             game_over = gs.check()
             if game_over:
                 if gs.red_to_move:
@@ -190,12 +195,13 @@ def main():
                     loser("Red win", screen)
                     running = False
             human_turn = (gs.red_to_move and player_one) or (not gs.red_to_move and player_two)
-            for event in pygame.event.get():
+            events = pygame.event.get()
+            for event in events:
                 if event.type == pygame.QUIT:
                     running = False
                 elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if not game_over and human_turn:
-                        location = pygame.mouse.get_pos()  # (x,y) location of mouse
+                    location = pygame.mouse.get_pos()
+                    if not game_over and human_turn and location[0] <= WIDTH-WIDTH_CAL:
                         col = location[0] // SQ_SIZE
                         row = location[1] // SQ_SIZE
                         if sq_selected == (row, col):  # the user clicked the same square twice
@@ -251,7 +257,7 @@ def main():
             text = font.render("Red time: " + str(player1_minutes1) + str(player1_minutes2) + ':' + str(player1_second1) + str(player1_second2), True, (255, 255, 255))
             text_rect = text.get_rect()
             text_rect.centerx = sub_screen1.get_rect().centerx
-            text_rect.centery = sub_screen1.get_rect().centery
+            text_rect.centery = sub_screen1.get_rect().centery+70
             sub_screen1.blit(text, text_rect)
             # Blit the sub-screen onto the main screen
             screen.blit(sub_screen1, (576, 352))
@@ -263,7 +269,7 @@ def main():
             text = font.render("Blue time: " + str(player2_minutes1) + str(player2_minutes2) + ':' + str(player2_second1) + str(player2_second2), True, (255, 255, 255))
             text_rect = text.get_rect()
             text_rect.centerx = sub_screen4.get_rect().centerx
-            text_rect.centery = sub_screen4.get_rect().centery
+            text_rect.centery = sub_screen4.get_rect().centery-70
             sub_screen4.blit(text, text_rect)
             # Blit the sub-screen onto the main screen
             screen.blit(sub_screen4, (576, 176))
@@ -285,7 +291,7 @@ def main():
             text = font.render("Red score: " + str(red_score), True, (255, 255, 255))
             text_rect = text.get_rect()
             text_rect.centerx = sub_screen3.get_rect().centerx
-            text_rect.centery = sub_screen3.get_rect().centery
+            text_rect.centery = sub_screen3.get_rect().centery+50
             sub_screen3.blit(text, text_rect)
             # Blit the sub-screen onto the main screen
             screen.blit(sub_screen3, (576, 528))
@@ -297,16 +303,14 @@ def main():
             text = font.render("Blue score: " + str(blue_score), True, (255, 255, 255))
             text_rect = text.get_rect()
             text_rect.centerx = sub_screen2.get_rect().centerx
-            text_rect.centery = sub_screen2.get_rect().centery
+            text_rect.centery = sub_screen2.get_rect().centery-50
             sub_screen2.blit(text, text_rect)
             # Blit the sub-screen onto the main screen
             screen.blit(sub_screen2, (576, 0))
             # Update the display
-            pygame.display.flip()
 
             # AI move finder
             if not game_over and not human_turn  and not gs.red_to_move:
-                print('hh')
                 ################################
                 AIMove = AI_BLUE.findMove(gs, valid_moves,DEPTH_AI_BLUE)
                 gs.makeMove(AIMove)
@@ -322,9 +326,10 @@ def main():
             if move_made:
                 valid_moves = gs.getAllPossibleMoves()
                 move_made = False
-            drawGameState(screen, gs, valid_moves, sq_selected)
+            drawGameState(screen, gs, valid_moves, sq_selected,events)
+
+            CAL.draw_caltable(screen, events,IMAGES)
             clock.tick(MAX_FPS)
-            print(gs.red_to_move)
             pygame.display.flip()
 
 
@@ -348,7 +353,7 @@ def highlightSquares(screen, gs, valid_moves, sq_selected):
                     screen.blit(s, (move.end_col * SQ_SIZE, move.end_row * SQ_SIZE))
 
 
-def drawGameState(screen, gs, valid_moves, sq_selected):
+def drawGameState(screen, gs, valid_moves, sq_selected,events):
     """
     Responsible for all the graphics within current game state.
     """
@@ -356,6 +361,7 @@ def drawGameState(screen, gs, valid_moves, sq_selected):
     highlightSquares(screen, gs, valid_moves, sq_selected)
     drawPieces(screen, gs.board)
 
+    # CAL.__init__().cal_num_1 = 1
 
 def drawBoard(screen):
     """
@@ -378,8 +384,6 @@ def drawPieces(screen, board):
             piece = board[r][c]
             if piece != "--":
                 screen.blit(IMAGES[piece], pygame.Rect(c * SQ_SIZE + 5, r * SQ_SIZE + 5, SQ_SIZE, SQ_SIZE))
-
-
 def loser(message, screen):
     time.sleep(0.5)
     font = pygame.font.Font('freesansbold.ttf', 32)
@@ -390,6 +394,8 @@ def loser(message, screen):
     screen.blit(text, textRect)
     pygame.display.update()
     time.sleep(5)
+
+
 
 
 if __name__ == '__main__':
